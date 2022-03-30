@@ -28,7 +28,7 @@
 
 - name: Change file ownership, group and permissions
   ansible.builtin.file:
-    path: /opt/stern/
+    path: /opt/stern/stern
     owner: root
     group: root
     mode: '0755'
