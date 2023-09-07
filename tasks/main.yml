@@ -1,127 +1,36 @@
----
 # tasks file for ansible-stern
-- name: check if stern folder exists
-  stat: 
-    path: /opt/stern
-  register: stern_folder_exists
-  tags: stern
-  
-- name: Create stern directory
-  ansible.builtin.file:
-    path: /opt/stern
-    state: directory
-    mode: '0755'
-  tags: stern
-  when: stern_folder_exists.stat.exists == False
-
 - name: Get latest Release from stern
-  shell: curl -Lo /opt/stern/stern https://github.com/wercker/stern/releases/download/$(curl -s https://api.github.com/repos/wercker/stern/releases/latest | grep tag_name | cut -d '"' -f 4)/stern_linux_amd64
+  shell: curl -Lo /tmp/stern.tar.gz https://github.com/stern/stern/releases/download/$(curl -s https://api.github.com/repos/stern/stern/releases/latest | grep tag_name | cut -d '"' -f 4)/stern_$(curl -s https://api.github.com/repos/stern/stern/releases/latest | grep tag_name | cut -d '"' -f 4| tr -d v)_{{ ansible_system | lower }}_amd64.tar.gz
+  args:
+    warn: no
+  when: ansible_architecture == 'x86_64'
+  tags: stern
+
+- name: Unarchive a file
+  shell: tar -xvf /tmp/stern.tar.gz -C /usr/local/bin/ stern
   args:
     warn: no
   tags: stern
 
-# - name: Unarchive a file
-#   shell: tar -xzf /opt/stern/stern.tar.gz -C /opt/stern/
-#   args:
-#     warn: no
+# - name: Change file ownership, group and permissions
+#   ansible.builtin.file:
+#     path: /opt/stern/stern
+#     owner: root
+#     group: root
+#     mode: '0755'
 #   tags: stern
 
-- name: Change file ownership, group and permissions
-  ansible.builtin.file:
-    path: /opt/stern/stern
-    owner: root
-    group: root
-    mode: '0755'
-  tags: stern
-
 - name: Verify stern exists
-  stat: path=/opt/stern/stern
+  stat: path=/usr/local/bin/stern
   register: stern_stat
   tags: stern
 
-- name: Configure stern on system bin.
-  file:
-    src: "/opt/stern/stern"
-    dest: "/usr/bin/stern"
-    state: link
-  when: stern_stat.stat.exists
-  tags: stern
+# - command: stern version
+#   register: result_stern
+#   failed_when: false
+#   changed_when: false
+#   tags: stern
 
-- name: Configure stern on system sbin.
-  file:
-    src: "/opt/stern/stern" 
-    dest: "/usr/sbin/stern"
-    state: link
-  when: stern_stat.stat.exists
-  tags: stern
-
-# Customize Per existing user
-- name : list users to apply stern
-  shell: |
-    getent passwd | awk -F: '$3 > 999 {print $1}'
-  register: users
-  tags: stern
-
-- debug:
-    var: users
-    verbosity: 2
-
-- name: Create user bin directory
-  file: path=/home/{{ item }}/.local/bin/ state=directory mode="a+rw"
-  when: stern_stat.stat.exists
-  with_items: "{{ users.stdout_lines }}"
-  tags: stern
-
-- name: Configure stern on user bin.
-  file:
-    src: "/opt/stern/stern"
-    dest: "/home/{{ item }}/.local/bin/stern"
-    state: link
-  with_items: "{{ users.stdout_lines }}"
-  when: stern_stat.stat.exists
-  tags: stern
-
-- name: Create user bin directory
-  file: path=/home/{{ item }}/.local/bin/ state=directory mode="a+rw"
-  when: stern_stat.stat.exists
-  with_items: "{{ users.stdout_lines }}"
-  tags: stern
-
-- name: update stern on users bashrc
-  lineinfile:
-    dest: /home/{{ item }}/.bashrc
-    state: present
-    line: 'export PATH="/opt/stern/:$PATH"'
-  with_items: "{{ users.stdout_lines }}"
-  tags: stern
-  ignore_errors: true
-
-- name: update stern on skel bashrc
-  lineinfile:
-    dest: /etc/skel/.bashrc
-    state: present
-    line: 'export PATH="/opt/stern/:$PATH"'
-  tags: stern
-
-# Check status
-- shell: which stern
-  args:
-    executable: /bin/bash -ilc
-  register: which_stern
-  failed_when: false
-  changed_when: false
-  tags: stern
-
-- debug:
-    var:  which_stern.stdout
-    verbosity: 2
-
-- command: stern version
-  register: result_stern
-  failed_when: false
-  changed_when: false
-  tags: stern
-
-- debug:
-    var: result_stern.stdout
-  tags: stern
+# - debug:
+#     var: result_stern.stdout
+#   tags: stern
