@@ -1,15 +1,15 @@
 # tasks file for ansible-stern
 - name: Get latest Release from stern
   shell: curl -Lo /tmp/stern.tar.gz https://github.com/stern/stern/releases/download/$(curl -s https://api.github.com/repos/stern/stern/releases/latest | grep tag_name | cut -d '"' -f 4)/stern_$(curl -s https://api.github.com/repos/stern/stern/releases/latest | grep tag_name | cut -d '"' -f 4| tr -d v)_{{ ansible_system | lower }}_amd64.tar.gz
-  args:
-    warn: no
+  # args:
+  #   warn: no
   when: ansible_architecture == 'x86_64'
   tags: stern
 
 - name: Unarchive a file
   shell: tar -xvf /tmp/stern.tar.gz -C /usr/local/bin/ stern
-  args:
-    warn: no
+  # args:
+  #   warn: no
   tags: stern
 
 - name: Verify stern exists
